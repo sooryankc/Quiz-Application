@@ -1,0 +1,90 @@
+# Quiz Application Documentation 📖
+
+## 🌟 Introduction
+The **Quiz Application** is a command-line-based system developed in C that allows teachers to create quizzes and students to take them. The system provides functionalities for quiz management, secure teacher authentication, and student result tracking.
+
+## 🚀 Features
+### 👨‍🏫 Teacher Mode:
+- 🔒 Secure login using a password
+- ✍️ Create multiple-choice questions (MCQs)
+- ✅ Store correct answers for automatic grading
+- 📊 View all student scores
+
+### 👨‍🎓 Student Mode:
+- 🎮 Take a quiz by entering a roll number
+- 🔄 Navigate through questions (skip, jump, next, previous)
+- 📝 Submit answers and get instant scores
+
+## 🛠️ System Requirements
+- **Operating System:** Windows, Linux, or macOS
+- **Compiler:** GCC (MinGW for Windows)
+- **Memory:** Minimal (text-based application)
+
+## 📥 Installation & Setup
+
+### ✅ Prerequisites
+Ensure you have a C compiler installed:
+- **Windows:** Install MinGW and add it to the system path
+- **Linux/macOS:** Use the default GCC compiler
+
+### ⚙️ Steps to Compile & Run
+
+#### 🖥️ Windows:
+```bash
+mingw32-gcc quiz.c -o quiz.exe
+./quiz.exe
+```
+
+#### 💻 Linux/macOS:
+```bash
+gcc quiz.c -o quiz.out
+./quiz.out
+```
+
+## 🎮 Usage Guide
+
+### 👨‍🏫 Teacher Mode
+1. Launch the program and select **Teacher** mode.
+2. Enter the **password** for authentication.
+3. Create quiz questions with four options and specify the correct answer.
+4. After students take the quiz, view their scores.
+
+### 👨‍🎓 Student Mode
+1. Launch the program and select **Student** mode.
+2. Enter your **roll number** to start the quiz.
+3. Navigate through the quiz:
+   - **S** - Skip question
+   - **J** - Jump to a specific question
+   - **N** - Next question
+   - **P** - Previous question
+   - **F** - Finish the quiz
+4. View your final score after submitting the quiz.
+
+## 🔒 Security Features
+- 🔑 Password masking for secure teacher authentication.
+- 🚫 Restricted access to quiz creation and result management.
+
+## ⚡ Limitations & Future Enhancements
+### ❌ Limitations:
+- No database storage (resets when the program exits)
+- Limited to text-based input/output
+
+### 🔮 Future Enhancements:
+- 📂 Implement file-based or database storage for persistence
+- 🖥️ Add a graphical user interface (GUI)
+- 📊 Enhance student analytics and reporting
+
+## 🤝 Contribution Guidelines
+Want to contribute? Follow these steps:
+1. **Fork** the repository on GitHub.
+2. Create a **new branch** for your feature/fix.
+3. **Commit** changes and push to your branch.
+4. Open a **pull request** for review.
+
+## 📜 License
+This project is licensed under the **MIT License**.
+
+---
+
+📌 **Follow this guide to set up and contribute to the Quiz Application!** 🚀 If you have any questions, feel free to open an issue on GitHub!
+
