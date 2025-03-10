@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2025 Soorya Narayanan K C, Samrithi Rauthan, V B Jyothir Adithya
+Copyright (c) 2025 Soorya Narayanan K C, Samridhi Rauthan, V B Jyothir Adithya
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
