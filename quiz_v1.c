@@ -25,7 +25,7 @@ char getch() {
 
 
 // Quiz Array
-char questions[MAX_QUESTIONS][200];
+char questions[MAX_QUESTIONS][100];
 char options[MAX_QUESTIONS][4][100];
 char correctAnswers[MAX_QUESTIONS];
 int totalQuestions = 0;
