@@ -77,22 +77,6 @@ void printQuizAsciiArt() {
 }
 
 
-
-
-// Function to validate only A, B, C, D input
-char getValidAnswer() {
-    char answer;
-    while (1) {
-        printf("Select option (A/B/C/D): ");
-        scanf(" %c", &answer);
-        if ((answer >= 'a' && answer <= 'd') || (answer >= 'A' && answer <= 'D')) {
-            if (answer >= 'a') answer -= 32; // Convert to uppercase
-            return answer;
-        }
-        printf("Invalid choice! Enter A, B, C, or D.\n");
-    }
-}
-
 // XOR Encryption Function
 void encryptDecrypt(char *text) {
     for (int i = 0; text[i] != '\0'; i++) {
@@ -205,7 +189,6 @@ void saveResultToFile(int rollNo, int score, int totalQuestions, const char* sub
 
 // Function to take the quiz (Student)
 void takeQuiz(int studentIndex, int subjectIndex) {
-    // Clear input buffer ONCE at the start to remove any leftover newlines
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 
@@ -217,6 +200,10 @@ void takeQuiz(int studentIndex, int subjectIndex) {
     while (1) {
         system("cls");
         printQuizAsciiArt();
+
+        // Show attended/not attended status before each question
+        displayQuestionStatus(studentIndex);
+
         printf("Q%d: %s\n", currentQuestion + 1, questions[currentQuestion]);
         for (int i = 0; i < 4; i++) {
             printf("%c. %s\n", 'A' + i, options[currentQuestion][i]);
@@ -224,13 +211,12 @@ void takeQuiz(int studentIndex, int subjectIndex) {
 
         printf("\nYour Answer (A-D), S=Skip, N=Next, P=Previous, J=Jump, Q=Quit: ");
         answer = toupper(getchar());
-        while (getchar() != '\n'); // Clear input buffer after each input
+        while (getchar() != '\n');
 
         if (answer >= 'A' && answer <= 'D') {
             studentAnswers[studentIndex][currentQuestion] = answer;
             questionStatus[studentIndex][currentQuestion] = 1;
 
-            // Check if all questions are attended
             int allAnswered = 1;
             for (int i = 0; i < totalQuestions; i++) {
                 if (questionStatus[studentIndex][i] == 0) {
@@ -238,9 +224,8 @@ void takeQuiz(int studentIndex, int subjectIndex) {
                     break;
                 }
             }
-            if (allAnswered) break; // Exit quiz if all questions are answered
+            if (allAnswered) break;
 
-            // Move to next unanswered question (wrap around)
             int foundNext = 0;
             for (int i = 1; i <= totalQuestions; i++) {
                 int next = (currentQuestion + i) % totalQuestions;
@@ -250,7 +235,7 @@ void takeQuiz(int studentIndex, int subjectIndex) {
                     break;
                 }
             }
-            if (!foundNext) break; // Safety, should not happen
+            if (!foundNext) break;
         } else if (answer == 'S' || answer == 'N') {
             if (currentQuestion < totalQuestions - 1)
                 currentQuestion++;
@@ -261,7 +246,7 @@ void takeQuiz(int studentIndex, int subjectIndex) {
             int qNum;
             printf("\nEnter question number to jump to (1-%d): ", totalQuestions);
             scanf("%d", &qNum);
-            while (getchar() != '\n');  // Clean buffer after scanf
+            while (getchar() != '\n');
             if (qNum >= 1 && qNum <= totalQuestions)
                 currentQuestion = qNum - 1;
         } else if (answer == 'Q') {
@@ -269,7 +254,6 @@ void takeQuiz(int studentIndex, int subjectIndex) {
         }
     }
 
-    // Score calculation after quiz ends
     int score = 0;
     for (int i = 0; i < totalQuestions; i++) {
         if (questionStatus[studentIndex][i] == 1 &&
@@ -288,7 +272,7 @@ void takeQuiz(int studentIndex, int subjectIndex) {
 // Function to load questions from file
 void loadQuestionFile(int studentIndex, int subjectIndex) {
     char filename[100];
-    sprintf(filename, "%s_questions.txt", subjects[subjectIndex]); // Use subject name to create filename
+    sprintf(filename, "%s_questions.txt", subjects[subjectIndex]);
 
     FILE *fp = fopen(filename, "r");
     if (!fp) {
@@ -298,19 +282,19 @@ void loadQuestionFile(int studentIndex, int subjectIndex) {
 
     totalQuestions = 0;
     while (fgets(questions[totalQuestions], sizeof(questions[totalQuestions]), fp)) {
-        questions[totalQuestions][strcspn(questions[totalQuestions], "\n")] = 0; // Remove trailing newline
-        encryptDecrypt(quiz[totalQuestions].question);  // Decrypt question
+        questions[totalQuestions][strcspn(questions[totalQuestions], "\n")] = 0;
+        encryptDecrypt(questions[totalQuestions]); // Decrypt question
 
         for (int i = 0; i < 4; i++) {
             fgets(options[totalQuestions][i], sizeof(options[totalQuestions][i]), fp);
-            options[totalQuestions][i][strcspn(options[totalQuestions][i], "\n")] = 0; // Remove trailing newline
-            encryptDecrypt(options[totalQuestions][i]);  // Decrypt option
+            options[totalQuestions][i][strcspn(options[totalQuestions][i], "\n")] = 0;
+            encryptDecrypt(options[totalQuestions][i]); // Decrypt option
         }
 
         char correct;
         fscanf(fp, " %c\n", &correct);
         correctAnswers[totalQuestions] = correct;
-        encryptDecrypt(&correctAnswers[totalQuestions]);  // Decrypt correct answer
+        encryptDecrypt(&correctAnswers[totalQuestions]); // Decrypt correct answer
 
         totalQuestions++;
         if (totalQuestions >= MAX_QUESTIONS) break;
@@ -318,12 +302,11 @@ void loadQuestionFile(int studentIndex, int subjectIndex) {
 
     fclose(fp);
 
-    // FIX: Clear answers/status ONCE before starting quiz
     memset(studentAnswers[studentIndex], 0, sizeof(studentAnswers[studentIndex]));
     memset(questionStatus[studentIndex], 0, sizeof(questionStatus[studentIndex]));
 
     printf("\nQuiz for '%s' loaded successfully!\n", subjects[subjectIndex]);
-    takeQuiz(studentIndex, subjectIndex);  // Pass subject index to takeQuiz
+    takeQuiz(studentIndex, subjectIndex);
 }
 
 // Function for student login and quiz selection
@@ -367,7 +350,7 @@ void viewAllResults(const char* role, const char* teacherSubject) {
     printQuizAsciiArt();
     FILE *file = fopen("results.txt", "r");
     if (file == NULL) {
-        printf("Error: Unable to open results file!\n");
+        printf("Error: Unable to find results file!\n");
         return;
     }
 
@@ -396,7 +379,7 @@ void viewStudentResult(int rollNo) {
     printQuizAsciiArt();
     FILE *file = fopen("results.txt", "r");
     if (file == NULL) {
-        printf("Error: Unable to open results file!\n");
+        printf("Error: Unable to find results file!\n");
         return;
     }
 
