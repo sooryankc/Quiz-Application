@@ -1,7 +1,7 @@
 
 # 🎯 CLI-Based Quiz Application
 
-A secure, terminal-based **Quiz Management System** built in C as part of a capstone project. This system supports **Teacher (Admin)** and **Student** modes with encrypted question storage, interactive navigation, subject-wise quizzes, and score tracking.
+A secure, terminal-based secure **Quiz Management System** built in C as part of a capstone project. This system supports **Teacher (Admin)** and **Student** modes with encrypted question storage, interactive navigation, subject-wise quizzes, and score tracking.
 
 ---
 
