@@ -60,7 +60,7 @@ int studentScores[MAX_STUDENTS];
 int totalStudents = 0;
 int questionStatus[MAX_STUDENTS][MAX_QUESTIONS];
 
-//Funtion prototypes
+// Function prototypes
 void printBorderLine(void);
 void printCenteredWithBorder(const char* text);
 void printEmptyBorderLine(void);
@@ -84,7 +84,9 @@ void teacherMenu(void);
 void student_menu(void);
 int verify_admin(void);
 void adminMenu(void);
-
+void viewSavedQuestions(const char* teacherUsername);
+void displayQuizResults(int rollNo, int score, int totalQuestions, const char* subjectName);
+void deleteQuiz(const char* teacherUsername);
 
 // Function to print a border line
 void printBorderLine() {
@@ -94,12 +96,12 @@ void printBorderLine() {
 // Function to print centered text with border
 void printCenteredWithBorder(const char* text) {
     int len = (int)strlen(text);
-    int pad = (BORDER_WIDTH - 2 - len) / 2;
-    if (pad < 0) pad = 0;
+    int pad = (BORDER_WIDTH - 2 - len) / 2; // Calculate padding for centering
+    if (pad < 0) pad = 0; // Ensure no negative padding
     printf("|");
-    for (int i = 0; i < pad; i++) printf(" ");
-    printf("%s", text);
-    for (int i = 0; i < BORDER_WIDTH - 2 - pad - len; i++) printf(" ");
+    for (int i = 0; i < pad; i++) printf(" "); // Left padding
+    printf("%s", text); // Left-aligned text
+    for (int i = 0; i < BORDER_WIDTH - 2 - pad - len; i++) printf(" "); // Right padding
     printf("|\n");
 }
 // Function to print empty border line
@@ -112,9 +114,9 @@ void printEmptyBorderLine() {
 void printCenteredWithBorderTruncate(const char* text) {
     int maxLen = BORDER_WIDTH - 4; // 2 for borders, 2 for padding
     char buf[512];
-    strncpy(buf, text, maxLen);
+    strncpy(buf, text, maxLen); // Truncate the text if it exceeds max length
     buf[maxLen] = '\0';
-    printCenteredWithBorder(buf);
+    printCenteredWithBorder(buf); // Use the updated function for left-aligned centering
 }
 
 // Function to print quiz ASCII art
@@ -158,9 +160,9 @@ void enterQuestions(char* teacherUsername) {
         return;
     }
 
-    printf("Set quiz duration in minutes (5-30): ");
+    printf("Set quiz duration in minutes (5-30). Enter 0 for no time limit: ");
     scanf("%d", &quizDuration);
-    if (quizDuration < 5) quizDuration = 5;
+    if (quizDuration < 0) quizDuration = 0; // Ensure no negative values
     if (quizDuration > 30) quizDuration = 30;
     fprintf(file, "DURATION:%d\n", quizDuration);
     while (getchar() != '\n');
@@ -188,16 +190,14 @@ void enterQuestions(char* teacherUsername) {
         printQuizAsciiArt();
         printf("Enter Question %d of %d (or type Q/q to return to menu)\n", i + 1, totalQ);
 
-        printf("Type your question below:\n");
+        printf("Type your question :");
         fgets(questions[i], sizeof(questions[i]), stdin);
         questions[i][strcspn(questions[i], "\n")] = 0;
 
         // Check for quit command
-        if (strcasecmp(questions[i], "Q") == 0) {
+        if (strcasecmp(questions[i], "Q") == 0 || strcasecmp(questions[i], "q") == 0) {
             printf("Exiting question entry and returning to Teacher Menu...\n");
-            break;
-        }else if (strcasecmp(questions[i], "q") == 0) {
-            printf("Exiting question entry and returning to Teacher Menu...\n");
+            system("pause");
             break;
         }
         encryptDecrypt(questions[i]);
@@ -221,7 +221,9 @@ void enterQuestions(char* teacherUsername) {
     }
 
     fclose(file);
-    printf("Questions successfully recorded and encrypted in '%s'!\n", filename);
+    printf("Questions successfully recorded in '%s'!\n", filename);
+    system("pause");
+    fflush(stdin); // Clear input buffer
 }
 // Function to load questions from file
 void loadQuestionFile(int studentIndex, int subjectIndex) {
@@ -255,6 +257,43 @@ void loadQuestionFile(int studentIndex, int subjectIndex) {
         }
     }
 
+    // Check if the student has already taken the quiz
+    FILE *resultsFile = fopen("results.txt", "r");
+    if (resultsFile) {
+        char rollNoStr[40];
+        sprintf(rollNoStr, "Roll No: %d,", rollNumbers[studentIndex]);
+        int alreadyTaken = 0;
+
+        while (fgets(line, sizeof(line), resultsFile)) {
+            if (strstr(line, rollNoStr) != NULL && strstr(line, subjects[subjectIndex]) != NULL) {
+                alreadyTaken = 1;
+                break;
+            }
+        }
+        fclose(resultsFile);
+
+        if (alreadyTaken) {
+            if (resubmissionPolicy == 'Y') {
+                printf("\nYou have already taken the quiz for '%s'.\n", subjects[subjectIndex]);
+                printf("Do you want to retake the quiz? (Y/N): ");
+                char choice;
+                scanf(" %c", &choice);
+                while (getchar() != '\n'); // Clear input buffer
+                if (toupper(choice) != 'Y') {
+                    printf("Returning to the student menu...\n");
+                    system("pause");
+                    fclose(fp);
+                    return;
+                }
+            } else {
+                printf("\nYou have already taken the quiz for '%s'. Resubmission is not allowed.\n", subjects[subjectIndex]);
+                system("pause");
+                fclose(fp);
+                return;
+            }
+        }
+    }
+
     totalQuestions = 0;
     while (fgets(questions[totalQuestions], sizeof(questions[totalQuestions]), fp)) {
         questions[totalQuestions][strcspn(questions[totalQuestions], "\n")] = 0; // Remove newline
@@ -263,7 +302,7 @@ void loadQuestionFile(int studentIndex, int subjectIndex) {
         // Read options
         for (int i = 0; i < 4; i++) {
             if (!fgets(options[totalQuestions][i], sizeof(options[totalQuestions][i]), fp)) {
-                printf("Error: Malformed quiz file (missing options for question %d).\n", totalQuestions + 1);
+                printf("Error: Malformed quiz file (missing options for question %d). Please contact teacher.\n", totalQuestions + 1);
                 fclose(fp);
                 system("pause");
                 fflush(stdin); // Clear input buffer
@@ -276,7 +315,7 @@ void loadQuestionFile(int studentIndex, int subjectIndex) {
         // Read correct answer
         char correct;
         if (fscanf(fp, " %c\n", &correct) != 1) {
-            printf("Error: Malformed quiz file (missing correct answer for question %d).\n", totalQuestions + 1);
+            printf("Error: Malformed quiz file (missing correct answer for question %d). Please contact the teacher.\n", totalQuestions + 1);
             fclose(fp);
             system("pause");
             fflush(stdin); // Clear input buffer
@@ -314,7 +353,7 @@ void loadQuestionFile(int studentIndex, int subjectIndex) {
 void saveResultToFile(int rollNo, int score, int totalQuestions, const char* subjectName) {
     FILE *file = fopen("results.txt", "a"); // Open the file in append mode
     if (file == NULL) {
-        printf("Error: Unable to open results file!\n");
+        printf("Unable to open results file! Please contact the teacher/admin.\n");
         return;
     }
 
@@ -345,7 +384,7 @@ void viewStudentResult(int rollNo) {
 
     FILE *file = fopen("results.txt", "r");
     if (file == NULL) {
-        printCenteredWithBorder("Error: Unable to find results file!");
+        printCenteredWithBorder("Unable to find results file! Please contact the teacher/admin.");
         printBorderLine();
         system("pause"); // <-- Add this line
         return;
@@ -430,6 +469,31 @@ char getch_cross() {
 }
 #endif
 
+// Function to display quiz results page
+void displayQuizResults(int rollNo, int score, int totalQuestions, const char* subjectName) {
+    system("cls"); // Clear the screen
+    printQuizAsciiArt();
+    printBorderLine();
+    printEmptyBorderLine();
+    printCenteredWithBorder("----- Quiz Results -----");
+    printEmptyBorderLine();
+
+    char resultLine[100];
+    snprintf(resultLine, sizeof(resultLine), "Roll Number: %d", rollNo);
+    printCenteredWithBorder(resultLine);
+
+    snprintf(resultLine, sizeof(resultLine), "Subject: %s", subjectName);
+    printCenteredWithBorder(resultLine);
+
+    snprintf(resultLine, sizeof(resultLine), "Score: %d/%d", score, totalQuestions);
+    printCenteredWithBorder(resultLine);
+
+    printEmptyBorderLine();
+    printBorderLine();
+    printf("Press any key to return to the main menu...\n");
+    getch(); // Wait for user input
+}
+
 
 // Function to take the quiz (Student)
 void takeQuiz(int studentIndex, int subjectIndex) {
@@ -449,8 +513,9 @@ void takeQuiz(int studentIndex, int subjectIndex) {
         while (!inputReceived) {
             time_t now = time(NULL);
             int elapsed = (int)(now - startTime);
-            int remaining = timeLimit - elapsed;
-            if (remaining <= 0) {
+            int remaining = (quizDuration == 0) ? -1 : timeLimit - elapsed; // No time limit if quizDuration is 0
+
+            if (quizDuration != 0 && remaining <= 0) { // Only check timeout if there is a time limit
                 timeout = 1;
                 break;
             }
@@ -460,35 +525,17 @@ void takeQuiz(int studentIndex, int subjectIndex) {
                 system("cls");
                 printQuizAsciiArt();
                 printBorderLine();
-                char timerLine[40];
-                snprintf(timerLine, sizeof(timerLine), "Time Remaining: %02d:%02d", remaining / 60, remaining % 60);
-                printCenteredWithBorder(timerLine);
+                if (quizDuration == 0) { // Display "No Time Limit" if there is no time limit
+                    printCenteredWithBorder("No Time Limit");
+                } else {
+                    char timerLine[40];
+                    snprintf(timerLine, sizeof(timerLine), "Time Remaining: %02d:%02d", remaining / 60, remaining % 60);
+                    printCenteredWithBorder(timerLine); // Keep the timer center-aligned
+                }
                 printBorderLine();
 
                 // Show attended/not attended status
-                char attended[200] = "Attended --> ";
-                char notAttended[200] = "Not attended --> ";
-                int attendedExists = 0, notAttendedExists = 0;
-                char temp[8];
-                for (int i = 0; i < totalQuestions; i++) {
-                    if (questionStatus[studentIndex][i] == 1) {
-                        sprintf(temp, "[%d] ", i + 1);
-                        strcat(attended, temp);
-                        attendedExists = 1;
-                    }
-                }
-                if (!attendedExists) strcat(attended, "None");
-                printCenteredWithBorderTruncate(attended);
-
-                for (int i = 0; i < totalQuestions; i++) {
-                    if (questionStatus[studentIndex][i] == 0) {
-                        sprintf(temp, "[%d] ", i + 1);
-                        strcat(notAttended, temp);
-                        notAttendedExists = 1;
-                    }
-                }
-                if (!notAttendedExists) strcat(notAttended, "None");
-                printCenteredWithBorderTruncate(notAttended);
+                displayQuestionStatus(studentIndex);
 
                 printBorderLine();
 
@@ -509,7 +556,7 @@ void takeQuiz(int studentIndex, int subjectIndex) {
                 }
 
                 printBorderLine();
-                printCenteredWithBorder("Your Answer (A-D), S=Skip, N=Next, P=Previous, J=Jump, Q=Quit: ");
+                printCenteredWithBorder("Your Answer (A/B/C/D), S=Skip, N=Next, P=Previous, J=Jump, Q=Quit: ");
                 printBorderLine();
 
                 lastRemaining = remaining;
@@ -588,7 +635,9 @@ void takeQuiz(int studentIndex, int subjectIndex) {
     printCenteredWithBorder(scoreMsg);
     printBorderLine();
     saveResultToFile(rollNumbers[studentIndex], score, totalQuestions, subjects[subjectIndex]);
-    system("pause");
+
+    // Call the new function to display the results page
+    displayQuizResults(rollNumbers[studentIndex], score, totalQuestions, subjects[subjectIndex]);
 }
 
 // Function for student login and quiz selection
@@ -629,7 +678,7 @@ void viewAllResults(const char* role, const char* subjectFilter) {
 void clearAllResults() {
     FILE *file = fopen("results.txt", "w"); // Open in write mode to clear the file
     if (file == NULL) {
-        printf("Error: Unable to clear results file!\n");
+        printf("No results saved yet!\n");
         system("pause");
         return;
     }
@@ -685,6 +734,91 @@ void clearAllResults() {
     }
 #endif
 
+// Function to view saved questions (Teacher)
+void viewSavedQuestions(const char* teacherUsername) {
+    char filename[100];
+    sprintf(filename, "%s_questions.txt", teacherUsername);
+
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Error: No saved questions found for '%s'.\n", teacherUsername);
+        system("pause");
+        return;
+    }
+
+    system("cls");
+    printQuizAsciiArt();
+    printBorderLine();
+    printEmptyBorderLine();
+    printCenteredWithBorder("--- Saved Questions ---");
+    printEmptyBorderLine();
+
+    char line[256];
+    int questionNumber = 0;
+
+    // Read and display quiz duration
+    if (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "DURATION:", 9) == 0) {
+            char durationMsg[50];
+            snprintf(durationMsg, sizeof(durationMsg), "Quiz Duration: %d minutes", atoi(line + 9));
+            printCenteredWithBorder(durationMsg);
+        }
+    }
+
+    // Read and display resubmission policy
+    if (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "RESUBMISSION:", 13) == 0) {
+            char resubmissionMsg[50];
+            snprintf(resubmissionMsg, sizeof(resubmissionMsg), "Resubmission Allowed: %c", line[13]);
+            printCenteredWithBorder(resubmissionMsg);
+        }
+    }
+
+    printEmptyBorderLine();
+
+    // Read and display questions, options, and answers
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = 0; // Remove trailing newline
+        encryptDecrypt(line); // Decrypt the question or option
+
+        // Display the question header for every question
+        char questionHeader[50];
+        snprintf(questionHeader, sizeof(questionHeader), "Question %d:", questionNumber + 1);
+        printCenteredWithBorder(questionHeader);
+
+        // Display the question
+        printCenteredWithBorder(line);
+
+        // Read and display options
+        for (int i = 0; i < 4; i++) {
+            if (fgets(line, sizeof(line), file)) {
+                line[strcspn(line, "\n")] = 0; // Remove trailing newline
+                encryptDecrypt(line); // Decrypt the option
+                char optionLine[300];
+                snprintf(optionLine, sizeof(optionLine), "%c. %s", 'A' + i, line);
+                printCenteredWithBorder(optionLine);
+            }
+        }
+
+        // Read and display the correct answer
+        if (fgets(line, sizeof(line), file)) {
+            line[strcspn(line, "\n")] = 0; // Remove trailing newline
+            encryptDecrypt(line); // Decrypt the correct answer
+            char answerLine[50];
+            snprintf(answerLine, sizeof(answerLine), "Correct Answer: %s", line);
+            printCenteredWithBorder(answerLine);
+        }
+
+        questionNumber++; // Increment the question number
+        printEmptyBorderLine();
+    }
+
+    fclose(file);
+    printBorderLine();
+    system("pause");
+}
+
+// Function to verify teacher credentials
 int verify_teacher(char* teacherUsername) {
     Teacher t1 = {
         .sub = {"Physics", "Chemistry", "Math", "Biology", "English"},
@@ -717,12 +851,26 @@ int verify_teacher(char* teacherUsername) {
     return 0;  // Return 0 if the username is not found
 }
 
+void deleteQuiz(const char* teacherUsername) {
+    char filename[100];
+    sprintf(filename, "%s_questions.txt", teacherUsername);
+
+    // Check if the file exists
+    if (remove(filename) == 0) {
+        printf("Quiz for '%s' has been successfully deleted.\n", teacherUsername);
+    } else {
+        printf("Error: Unable to delete quiz for '%s'. File may not exist.\n", teacherUsername);
+    }
+    system("pause");
+}
+
+// Function for Teacher menu
 void teacherMenu() {
     char teacherUsername[50];
 
     while (getchar() != '\n'); // Clear input buffer before username input
 
-    if (verify_teacher(teacherUsername)==1) {
+    if (verify_teacher(teacherUsername) == 1) {
         int choice;
         while (1) {
             system("cls");
@@ -733,13 +881,15 @@ void teacherMenu() {
             printEmptyBorderLine();
             printCenteredWithBorder("1. Enter Questions");
             printCenteredWithBorder("2. View Results");
-            printCenteredWithBorder("3. Go Back to Main Menu");
+            printCenteredWithBorder("3. View Saved Questions and quiz details");
+            printCenteredWithBorder("4. Delete Quiz");
+            printCenteredWithBorder("5. Go Back to Main Menu");
             printEmptyBorderLine();
             printBorderLine();
             printf("Enter choice: ");
             
             if (scanf("%d", &choice) != 1) {
-                printf("Invalid input! Please enter a number between 1 and 3.\n");
+                printf("Invalid input! Please enter a number between 1 and 4.\n");
                 while (getchar() != '\n');
                 continue;
             }
@@ -752,13 +902,21 @@ void teacherMenu() {
                     viewAllResults("Teacher", teacherUsername);
                     break;
                 case 3: 
+                    viewSavedQuestions(teacherUsername);
+                    break;
+                case 4:
+                    deleteQuiz(teacherUsername);
+                    break;
+                case 5: 
                     return;
                 default: 
                     printf("Invalid choice! Try again.\n");
+                    system("pause");
             }
         }
     } else {
         printf("Access Denied!\n");
+        system("pause");
     }
 }
 
@@ -797,7 +955,7 @@ void studentLogin(int rollNo) {
 
         FILE *file = fopen("results.txt", "r");
         if (file == NULL) {
-            printf("Error: Unable to open results file. Proceeding to quiz...\n");
+            printf("Proceeding to quiz...\n");
         } else {
             char line[256];
             char rollNoStr[40];
@@ -823,7 +981,11 @@ void studentLogin(int rollNo) {
             }
 
             // Debug print for resubmission policy
-            printf("DEBUG: Resubmission policy for '%s' is '%c'.\n", subjectName, resubmissionPolicy);
+            if (resubmissionPolicy == 'Y') {
+                printf("Resubmission is allowed for '%s'.\n", subjectName);
+            } else {
+                printf("Resubmission is not allowed for '%s'.\n", subjectName);
+            }
 
             while (fgets(line, sizeof(line), file)) {
                 if (strstr(line, rollNoStr) != NULL && strstr(line, subjectName) != NULL) {
@@ -857,6 +1019,7 @@ void studentLogin(int rollNo) {
         loadQuestionFile(studentIndex, subSelect - 1);
     } else {
         printf("Invalid subject selection!\n");
+        system("pause");
     }
 }
 
@@ -893,6 +1056,7 @@ void student_menu() {
                 return;
             default: 
                 printf("Invalid choice! Try again.\n");
+                system("pause");
         }
     }
 }
@@ -915,9 +1079,11 @@ int verify_admin() {
 
     if (strcmp(tempUsername, adminUsername) == 0 && strcmp(tempPassword, adminPassword) == 0) {
         printf("Access Granted! Welcome, Admin.\n");
+        system("pause");
         return 1; // Success
     } else {
         printf("Invalid Admin Credentials!\n");
+        system("pause");
         return 0; // Failure
     }
 }
@@ -997,28 +1163,31 @@ int main() {
         printEmptyBorderLine();
         printBorderLine();
         printf("Enter choice: ");
-        scanf("%d", &choice);
+        
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input! Please enter a number between 1 and 4.\n");
+            while (getchar() != '\n'); // Clear the input buffer
+            system("pause");
+            continue;
+        }
 
-        switch (choice) {
-            case 1: 
-                teacherMenu(); 
-                break;
-            case 2: 
-                student_menu(); 
-                break;
-            case 3: 
-                adminMenu(); 
-                break;
-            case 4:
-                system("cls"); 
-                printQuizAsciiArt();
-                printBorderLine();
-                printf("Thanks for using the Quiz System!\n");
-                system("pause");
-                system("cls");
-                return 0;
-            default: 
-                printf("Invalid choice! Try again.\n");
+        if (choice == 1) {
+            teacherMenu();
+        } else if (choice == 2) {
+            student_menu();
+        } else if (choice == 3) {
+            adminMenu();
+        } else if (choice == 4) {
+            system("cls");
+            printQuizAsciiArt();
+            printBorderLine();
+            printf("Thanks for using the Quiz System!\n");
+            system("pause");
+            system("cls");
+            return 0;
+        } else {
+            printf("Invalid choice! Try again.\n");
+            system("pause");
         }
     }
 }
